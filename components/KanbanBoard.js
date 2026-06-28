@@ -6,136 +6,179 @@ import ApplicationCard from './ApplicationCard';
 
 const COLUMNS = ['Applied', 'Screening', 'Interview', 'Offer', 'Rejected'];
 
-const COL_STYLES = {
-  Applied:   { dot: 'bg-blue-400',   label: 'text-blue-400',   border: 'border-blue-400/20' },
-  Screening: { dot: 'bg-amber-400',  label: 'text-amber-400',  border: 'border-amber-400/20' },
-  Interview: { dot: 'bg-violet-400', label: 'text-violet-400', border: 'border-violet-400/20' },
-  Offer:     { dot: 'bg-emerald-400',label: 'text-emerald-400',border: 'border-emerald-400/20' },
-  Rejected:  { dot: 'bg-red-400',    label: 'text-red-400',    border: 'border-red-400/20' },
+const COL = {
+  Applied:   { color: '#60a5fa', bg: 'rgba(96,165,250,0.08)',  border: 'rgba(96,165,250,0.15)',  glow: 'rgba(96,165,250,0.12)'  },
+  Screening: { color: '#fbbf24', bg: 'rgba(251,191,36,0.08)',  border: 'rgba(251,191,36,0.15)',  glow: 'rgba(251,191,36,0.12)'  },
+  Interview: { color: '#a78bfa', bg: 'rgba(167,139,250,0.08)', border: 'rgba(167,139,250,0.15)', glow: 'rgba(167,139,250,0.12)' },
+  Offer:     { color: '#34d399', bg: 'rgba(52,211,153,0.08)',  border: 'rgba(52,211,153,0.15)',  glow: 'rgba(52,211,153,0.12)'  },
+  Rejected:  { color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.15)', glow: 'rgba(248,113,113,0.12)' },
 };
 
 export default function KanbanBoard({ initialApps, userName }) {
-  const [apps, setApps]         = useState(initialApps);
-  const [showAdd, setShowAdd]   = useState(false);
-  const [dragId, setDragId]     = useState(null);
+  const [apps, setApps]       = useState(initialApps);
+  const [showAdd, setShowAdd] = useState(false);
+  const [dragId, setDragId]   = useState(null);
   const [dragOver, setDragOver] = useState(null);
 
-  const byStatus = status => apps.filter(a => a.status === status);
+  const byStatus = s => apps.filter(a => a.status === s);
   const total    = apps.length;
-  const active   = apps.filter(a => !['Rejected'].includes(a.status)).length;
+  const active   = apps.filter(a => a.status !== 'Rejected').length;
   const offers   = apps.filter(a => a.status === 'Offer').length;
 
   async function handleAdd(data) {
     const res = await fetch('/api/applications', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
     const created = await res.json();
-    setApps(prev => [created, ...prev]);
+    setApps(p => [created, ...p]);
     setShowAdd(false);
   }
 
   async function handleDelete(id) {
     await fetch(`/api/applications/${id}`, { method: 'DELETE' });
-    setApps(prev => prev.filter(a => a._id !== id));
+    setApps(p => p.filter(a => a._id !== id));
   }
 
   async function handleStatusChange(id, status) {
     await fetch(`/api/applications/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
     });
-    setApps(prev => prev.map(a => a._id === id ? { ...a, status } : a));
+    setApps(p => p.map(a => a._id === id ? { ...a, status } : a));
   }
 
-  function onDragStart(e, id) {
-    setDragId(id);
-    e.dataTransfer.effectAllowed = 'move';
-  }
-
-  function onDragOver(e, col) {
-    e.preventDefault();
-    setDragOver(col);
-  }
-
+  function onDragStart(e, id) { setDragId(id); e.dataTransfer.effectAllowed = 'move'; }
+  function onDragOver(e, col) { e.preventDefault(); setDragOver(col); }
   function onDrop(e, col) {
     e.preventDefault();
     if (dragId) handleStatusChange(dragId, col);
-    setDragId(null);
-    setDragOver(null);
+    setDragId(null); setDragOver(null);
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#080810' }}>
+
       {/* Header */}
-      <header className="border-b border-white/[0.06] px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="font-bold text-lg tracking-tight">TrackJobs</span>
-          <span className="text-white/20 text-sm hidden sm:block">·</span>
-          <span className="text-white/40 text-sm hidden sm:block">Hey, {userName?.split(' ')[0]}</span>
+      <header style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 28px', height: 60,
+        background: 'rgba(255,255,255,0.025)',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 10,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+          <span style={{ fontWeight: 800, fontSize: 17, letterSpacing: '-0.02em' }}>
+            Track<span style={{ color: '#a78bfa' }}>Jobs</span>
+          </span>
+          <span style={{ color: 'rgba(255,255,255,0.12)', fontSize: 14 }}>|</span>
+          <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13 }}>
+            Hey, {userName?.split(' ')[0]}
+          </span>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="hidden sm:flex items-center gap-5 text-sm text-white/40">
-            <span><span className="text-white font-semibold">{total}</span> total</span>
-            <span><span className="text-white font-semibold">{active}</span> active</span>
-            <span><span className="text-emerald-400 font-semibold">{offers}</span> offers</span>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+          {/* Stats */}
+          <div style={{ display: 'flex', gap: 20 }}>
+            {[
+              { label: 'Total',  value: total,  color: 'rgba(255,255,255,0.8)' },
+              { label: 'Active', value: active, color: 'rgba(255,255,255,0.8)' },
+              { label: 'Offers', value: offers, color: '#34d399' },
+            ].map(s => (
+              <div key={s.label} style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value}</div>
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.12em', marginTop: 2 }}>{s.label.toUpperCase()}</div>
+              </div>
+            ))}
           </div>
-          <button
-            onClick={() => setShowAdd(true)}
-            className="bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
-          >
+
+          <button onClick={() => setShowAdd(true)} style={{
+            background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+            border: '1px solid rgba(139,92,246,0.4)',
+            borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 700,
+            padding: '8px 18px', cursor: 'pointer',
+            boxShadow: '0 0 20px rgba(124,58,237,0.3)',
+            transition: 'all 0.2s',
+          }}>
             + Add Job
           </button>
-          <button
-            onClick={() => signOut({ callbackUrl: '/login' })}
-            className="text-white/30 hover:text-white/60 text-sm transition-colors"
-          >
+
+          <button onClick={() => signOut({ callbackUrl: '/login' })} style={{
+            background: 'none', border: 'none', color: 'rgba(255,255,255,0.25)',
+            fontSize: 12, cursor: 'pointer',
+          }}>
             Sign out
           </button>
         </div>
       </header>
 
       {/* Board */}
-      <main className="flex-1 overflow-x-auto p-6">
+      <main style={{ flex: 1, overflowX: 'auto', padding: '28px 24px' }}>
         {apps.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-64 text-white/25 text-sm gap-3">
-            <p>No applications yet.</p>
-            <button onClick={() => setShowAdd(true)} className="text-violet-400 hover:text-violet-300 transition-colors">
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 300, gap: 12 }}>
+            <div style={{ fontSize: 32, opacity: 0.2 }}>◫</div>
+            <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>No applications yet</p>
+            <button onClick={() => setShowAdd(true)} style={{
+              background: 'none', border: 'none', color: '#a78bfa',
+              fontSize: 13, cursor: 'pointer',
+            }}>
               Add your first job →
             </button>
           </div>
         )}
 
-        <div className="flex gap-4 min-w-max">
+        <div style={{ display: 'flex', gap: 16, minWidth: 'max-content' }}>
           {COLUMNS.map(col => {
-            const s = COL_STYLES[col];
+            const c = COL[col];
             const colApps = byStatus(col);
             const isOver = dragOver === col;
+
             return (
-              <div
-                key={col}
+              <div key={col}
                 onDragOver={e => onDragOver(e, col)}
                 onDrop={e => onDrop(e, col)}
                 onDragLeave={() => setDragOver(null)}
-                className={`w-72 flex flex-col rounded-xl border transition-colors ${isOver ? 'border-violet-500/40 bg-violet-500/5' : 'border-white/[0.06] bg-white/[0.02]'}`}
+                style={{
+                  width: 280, display: 'flex', flexDirection: 'column',
+                  background: isOver ? c.bg : 'rgba(255,255,255,0.018)',
+                  border: `1px solid ${isOver ? c.border : 'rgba(255,255,255,0.06)'}`,
+                  borderRadius: 14,
+                  boxShadow: isOver ? `0 0 30px ${c.glow}` : 'none',
+                  transition: 'all 0.2s',
+                }}
               >
                 {/* Column header */}
-                <div className="px-4 py-3 flex items-center justify-between border-b border-white/[0.06]">
-                  <div className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full ${s.dot}`}></span>
-                    <span className={`text-xs font-semibold ${s.label}`}>{col}</span>
+                <div style={{
+                  padding: '14px 16px', display: 'flex', alignItems: 'center',
+                  justifyContent: 'space-between',
+                  borderBottom: '1px solid rgba(255,255,255,0.05)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{
+                      width: 7, height: 7, borderRadius: '50%',
+                      background: c.color,
+                      boxShadow: `0 0 8px ${c.color}`,
+                      display: 'inline-block',
+                    }} />
+                    <span style={{ fontSize: 11, fontWeight: 700, color: c.color, letterSpacing: '0.08em' }}>
+                      {col.toUpperCase()}
+                    </span>
                   </div>
-                  <span className="text-xs text-white/30 font-medium">{colApps.length}</span>
+                  <span style={{
+                    fontSize: 11, fontWeight: 700,
+                    color: colApps.length ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.15)',
+                    background: 'rgba(255,255,255,0.06)',
+                    borderRadius: 20, padding: '2px 8px',
+                  }}>
+                    {colApps.length}
+                  </span>
                 </div>
 
                 {/* Cards */}
-                <div className="flex-1 p-3 flex flex-col gap-2 min-h-[200px]">
+                <div style={{ flex: 1, padding: '10px 10px', display: 'flex', flexDirection: 'column', gap: 8, minHeight: 180 }}>
                   {colApps.map(app => (
                     <ApplicationCard
-                      key={app._id}
-                      app={app}
+                      key={app._id} app={app} colColor={c.color}
                       onDelete={handleDelete}
                       onStatusChange={handleStatusChange}
                       onDragStart={onDragStart}
