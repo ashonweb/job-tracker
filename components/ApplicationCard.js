@@ -3,7 +3,7 @@ import { useState } from 'react';
 
 const STATUSES = ['Applied', 'Screening', 'Interview', 'Offer', 'Rejected'];
 
-export default function ApplicationCard({ app, colColor, onDelete, onStatusChange, onDragStart }) {
+export default function ApplicationCard({ app, colColor, onDelete, onStatusChange, onDragStart, onEdit }) {
   const [expanded, setExpanded] = useState(false);
   const date = new Date(app.dateApplied).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
@@ -105,13 +105,22 @@ export default function ApplicationCard({ app, colColor, onDelete, onStatusChang
             </div>
           </div>
 
-          <button onClick={() => onDelete(app._id)} style={{
-            background: 'none', border: 'none',
-            color: 'rgba(248,113,113,0.45)', fontSize: 11,
-            cursor: 'pointer', padding: 0,
-          }}>
-            Delete
-          </button>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button onClick={() => onEdit(app)} style={{
+              background: 'none', border: 'none',
+              color: 'rgba(167,139,250,0.6)', fontSize: 11,
+              cursor: 'pointer', padding: 0,
+            }}>
+              Edit
+            </button>
+            <button onClick={() => onDelete(app._id)} style={{
+              background: 'none', border: 'none',
+              color: 'rgba(248,113,113,0.45)', fontSize: 11,
+              cursor: 'pointer', padding: 0,
+            }}>
+              Delete
+            </button>
+          </div>
         </div>
       )}
     </div>

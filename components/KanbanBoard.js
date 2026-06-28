@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { signOut } from 'next-auth/react';
 import AddModal from './AddModal';
+import EditModal from './EditModal';
 import ApplicationCard from './ApplicationCard';
 
 const COLUMNS = ['Applied', 'Screening', 'Interview', 'Offer', 'Rejected'];
@@ -16,8 +17,9 @@ const COL = {
 
 export default function KanbanBoard({ initialApps, userName }) {
   const [apps, setApps]       = useState(initialApps);
-  const [showAdd, setShowAdd] = useState(false);
-  const [dragId, setDragId]   = useState(null);
+  const [showAdd, setShowAdd]   = useState(false);
+  const [editApp, setEditApp]   = useState(null);
+  const [dragId, setDragId]     = useState(null);
   const [dragOver, setDragOver] = useState(null);
 
   const byStatus = s => apps.filter(a => a.status === s);
@@ -33,6 +35,16 @@ export default function KanbanBoard({ initialApps, userName }) {
     const created = await res.json();
     setApps(p => [created, ...p]);
     setShowAdd(false);
+  }
+
+  async function handleEdit(id, data) {
+    const res = await fetch(`/api/applications/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const updated = await res.json();
+    setApps(p => p.map(a => a._id === id ? updated : a));
+    setEditApp(null);
   }
 
   async function handleDelete(id) {
@@ -182,6 +194,7 @@ export default function KanbanBoard({ initialApps, userName }) {
                       onDelete={handleDelete}
                       onStatusChange={handleStatusChange}
                       onDragStart={onDragStart}
+                      onEdit={setEditApp}
                     />
                   ))}
                 </div>
@@ -192,6 +205,7 @@ export default function KanbanBoard({ initialApps, userName }) {
       </main>
 
       {showAdd && <AddModal onClose={() => setShowAdd(false)} onSave={handleAdd} />}
+      {editApp && <EditModal app={editApp} onClose={() => setEditApp(null)} onSave={handleEdit} />}
     </div>
   );
 }
