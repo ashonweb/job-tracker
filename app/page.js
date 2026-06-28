@@ -161,6 +161,45 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* FAQ */}
+      <section style={{ padding: '0 24px 100px', maxWidth: 680, margin: '0 auto' }}>
+        <h2 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em', marginBottom: 40, textAlign: 'center' }}>
+          Frequently asked questions
+        </h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {[
+            {
+              q: 'Is TrackJobs really free?',
+              a: 'Yes. Create an account and track unlimited job applications for free. No credit card required.',
+            },
+            {
+              q: 'What is a job application tracker?',
+              a: 'A job application tracker helps you stay organized during your job search. Instead of losing track of where you applied in spreadsheets or sticky notes, you get a visual Kanban board that shows every application and its current status.',
+            },
+            {
+              q: 'How is this better than a spreadsheet?',
+              a: 'Spreadsheets work but they take effort to maintain. TrackJobs gives you a visual board where you drag cards between columns — Applied, Screening, Interview, Offer, Rejected — so the status of every application is clear at a glance.',
+            },
+            {
+              q: 'Can I export my data?',
+              a: 'Yes. Use the Export CSV button in the dashboard to download all your applications at any time.',
+            },
+            {
+              q: 'Is my data private?',
+              a: 'Yes. Each account is isolated — you only see your own applications. Passwords are hashed and never stored in plain text.',
+            },
+          ].map(({ q, a }) => (
+            <div key={q} style={{
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              padding: '20px 0',
+            }}>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10 }}>{q}</div>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', lineHeight: 1.7 }}>{a}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* CTA */}
       <section style={{ textAlign: 'center', padding: '60px 24px 100px' }}>
         <h2 style={{ fontSize: 'clamp(28px, 5vw, 48px)', fontWeight: 900, letterSpacing: '-0.02em', marginBottom: 16 }}>
