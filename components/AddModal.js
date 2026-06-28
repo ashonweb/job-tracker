@@ -62,7 +62,7 @@ export default function AddModal({ onClose, onSave }) {
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14, marginBottom: 14 }}>
             <div>
               <label style={labelStyle}>COMPANY *</label>
               <input required value={form.company} onChange={e => set('company', e.target.value)}
@@ -75,7 +75,7 @@ export default function AddModal({ onClose, onSave }) {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14, marginBottom: 14 }}>
             <div>
               <label style={labelStyle}>LOCATION</label>
               <input value={form.location} onChange={e => set('location', e.target.value)}
