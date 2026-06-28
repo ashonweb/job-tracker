@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { signOut } from 'next-auth/react';
 import AddModal from './AddModal';
 import EditModal from './EditModal';
@@ -15,17 +15,43 @@ const COL = {
   Rejected:  { color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.15)', glow: 'rgba(248,113,113,0.12)' },
 };
 
+function exportCSV(apps) {
+  const headers = ['Company', 'Role', 'Status', 'Location', 'Salary', 'Job URL', 'Date Applied', 'Notes'];
+  const rows = apps.map(a => [
+    a.company, a.role, a.status, a.location || '', a.salary || '',
+    a.jobUrl || '',
+    new Date(a.dateApplied).toLocaleDateString(),
+    (a.notes || '').replace(/"/g, '""'),
+  ].map(v => `"${v}"`).join(','));
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'applications.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function KanbanBoard({ initialApps, userName }) {
-  const [apps, setApps]       = useState(initialApps);
+  const [apps, setApps]         = useState(initialApps);
   const [showAdd, setShowAdd]   = useState(false);
   const [editApp, setEditApp]   = useState(null);
+  const [search, setSearch]     = useState('');
   const [dragId, setDragId]     = useState(null);
   const [dragOver, setDragOver] = useState(null);
 
-  const byStatus = s => apps.filter(a => a.status === s);
-  const total    = apps.length;
-  const active   = apps.filter(a => a.status !== 'Rejected').length;
-  const offers   = apps.filter(a => a.status === 'Offer').length;
+  const filtered = useMemo(() => {
+    if (!search.trim()) return apps;
+    const q = search.toLowerCase();
+    return apps.filter(a =>
+      a.company.toLowerCase().includes(q) ||
+      a.role.toLowerCase().includes(q) ||
+      (a.location || '').toLowerCase().includes(q)
+    );
+  }, [apps, search]);
+
+  const byStatus = s => filtered.filter(a => a.status === s);
+  const total  = apps.length;
+  const active = apps.filter(a => a.status !== 'Rejected').length;
+  const offers = apps.filter(a => a.status === 'Offer').length;
 
   async function handleAdd(data) {
     const res = await fetch('/api/applications', {
@@ -102,12 +128,13 @@ export default function KanbanBoard({ initialApps, userName }) {
           </div>
         </div>
 
-        {/* Stats row */}
+        {/* Stats + search row */}
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 0,
+          display: 'flex', alignItems: 'center',
           padding: '8px 20px', borderTop: '1px solid rgba(255,255,255,0.04)',
+          gap: 12, flexWrap: 'wrap',
         }}>
-          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, marginRight: 16 }}>
+          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>
             Hey, {userName?.split(' ')[0]}
           </span>
           {[
@@ -115,12 +142,37 @@ export default function KanbanBoard({ initialApps, userName }) {
             { label: 'Active', value: active, color: 'rgba(255,255,255,0.7)' },
             { label: 'Offers', value: offers, color: '#34d399' },
           ].map((s, i) => (
-            <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 6, marginRight: 16 }}>
-              {i > 0 && <span style={{ color: 'rgba(255,255,255,0.1)', marginRight: 10 }}>·</span>}
+            <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ color: 'rgba(255,255,255,0.1)' }}>·</span>
               <span style={{ fontSize: 14, fontWeight: 800, color: s.color }}>{s.value}</span>
               <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.08em' }}>{s.label.toUpperCase()}</span>
             </div>
           ))}
+
+          {/* Search */}
+          <div style={{ flex: 1, minWidth: 140, maxWidth: 260, marginLeft: 'auto', position: 'relative' }}>
+            <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'rgba(255,255,255,0.2)', pointerEvents: 'none' }}>⌕</span>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search company, role…"
+              style={{
+                width: '100%', background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8,
+                padding: '6px 10px 6px 26px', fontSize: 12,
+                color: 'rgba(255,255,255,0.7)', outline: 'none', fontFamily: 'inherit',
+              }}
+            />
+          </div>
+
+          {/* CSV export */}
+          <button onClick={() => exportCSV(apps)} style={{
+            background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 7, padding: '6px 12px', fontSize: 11, fontWeight: 600,
+            color: 'rgba(255,255,255,0.35)', cursor: 'pointer', whiteSpace: 'nowrap',
+          }}>
+            Export CSV
+          </button>
         </div>
       </header>
 
@@ -131,11 +183,16 @@ export default function KanbanBoard({ initialApps, userName }) {
             <div style={{ fontSize: 32, opacity: 0.2 }}>◫</div>
             <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>No applications yet</p>
             <button onClick={() => setShowAdd(true)} style={{
-              background: 'none', border: 'none', color: '#a78bfa',
-              fontSize: 13, cursor: 'pointer',
+              background: 'none', border: 'none', color: '#a78bfa', fontSize: 13, cursor: 'pointer',
             }}>
               Add your first job →
             </button>
+          </div>
+        )}
+
+        {search && filtered.length === 0 && apps.length > 0 && (
+          <div style={{ textAlign: 'center', padding: 60, color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>
+            No results for "{search}"
           </div>
         )}
 
@@ -159,19 +216,13 @@ export default function KanbanBoard({ initialApps, userName }) {
                   transition: 'all 0.2s',
                 }}
               >
-                {/* Column header */}
                 <div style={{
                   padding: '14px 16px', display: 'flex', alignItems: 'center',
                   justifyContent: 'space-between',
                   borderBottom: '1px solid rgba(255,255,255,0.05)',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{
-                      width: 7, height: 7, borderRadius: '50%',
-                      background: c.color,
-                      boxShadow: `0 0 8px ${c.color}`,
-                      display: 'inline-block',
-                    }} />
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: c.color, boxShadow: `0 0 8px ${c.color}`, display: 'inline-block' }} />
                     <span style={{ fontSize: 11, fontWeight: 700, color: c.color, letterSpacing: '0.08em' }}>
                       {col.toUpperCase()}
                     </span>
@@ -179,15 +230,13 @@ export default function KanbanBoard({ initialApps, userName }) {
                   <span style={{
                     fontSize: 11, fontWeight: 700,
                     color: colApps.length ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.15)',
-                    background: 'rgba(255,255,255,0.06)',
-                    borderRadius: 20, padding: '2px 8px',
+                    background: 'rgba(255,255,255,0.06)', borderRadius: 20, padding: '2px 8px',
                   }}>
                     {colApps.length}
                   </span>
                 </div>
 
-                {/* Cards */}
-                <div style={{ flex: 1, padding: '10px 10px', display: 'flex', flexDirection: 'column', gap: 8, minHeight: 180 }}>
+                <div style={{ flex: 1, padding: '10px', display: 'flex', flexDirection: 'column', gap: 8, minHeight: 180 }}>
                   {colApps.map(app => (
                     <ApplicationCard
                       key={app._id} app={app} colColor={c.color}
