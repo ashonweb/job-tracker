@@ -30,9 +30,13 @@ function exportCSV(apps) {
   URL.revokeObjectURL(url);
 }
 
-export default function KanbanBoard({ initialApps, userName }) {
+const FREE_LIMIT = 10;
+const GUMROAD_URL = 'https://meghpal.gumroad.com/l/gpvho';
+
+export default function KanbanBoard({ initialApps, userName, plan }) {
   const [apps, setApps]         = useState(initialApps);
   const [showAdd, setShowAdd]   = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const [editApp, setEditApp]   = useState(null);
   const [search, setSearch]     = useState('');
   const [dragId, setDragId]     = useState(null);
@@ -53,11 +57,20 @@ export default function KanbanBoard({ initialApps, userName }) {
   const active = apps.filter(a => a.status !== 'Rejected').length;
   const offers = apps.filter(a => a.status === 'Offer').length;
 
+  function tryAdd() {
+    if (plan !== 'pro' && apps.length >= FREE_LIMIT) {
+      setShowUpgrade(true);
+    } else {
+      setShowAdd(true);
+    }
+  }
+
   async function handleAdd(data) {
     const res = await fetch('/api/applications', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
+    if (res.status === 403) { setShowAdd(false); setShowUpgrade(true); return; }
     const created = await res.json();
     setApps(p => [created, ...p]);
     setShowAdd(false);
@@ -109,7 +122,7 @@ export default function KanbanBoard({ initialApps, userName }) {
             Track<span style={{ color: '#a78bfa' }}>Jobs</span>
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <button onClick={() => setShowAdd(true)} style={{
+            <button onClick={tryAdd} style={{
               background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
               border: '1px solid rgba(139,92,246,0.4)',
               borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 700,
@@ -165,6 +178,20 @@ export default function KanbanBoard({ initialApps, userName }) {
             />
           </div>
 
+          {/* Plan badge / limit */}
+          {plan === 'pro' ? (
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#a78bfa', background: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.2)', borderRadius: 20, padding: '3px 10px', whiteSpace: 'nowrap' }}>
+              ⚡ PRO
+            </span>
+          ) : (
+            <button onClick={() => setShowUpgrade(true)} style={{
+              background: 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20,
+              padding: '3px 10px', fontSize: 10, color: 'rgba(255,255,255,0.3)', cursor: 'pointer', whiteSpace: 'nowrap',
+            }}>
+              {apps.length}/{FREE_LIMIT} free
+            </button>
+          )}
+
           {/* CSV export */}
           <button onClick={() => exportCSV(apps)} style={{
             background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
@@ -182,7 +209,7 @@ export default function KanbanBoard({ initialApps, userName }) {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 300, gap: 12 }}>
             <div style={{ fontSize: 32, opacity: 0.2 }}>◫</div>
             <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>No applications yet</p>
-            <button onClick={() => setShowAdd(true)} style={{
+            <button onClick={tryAdd} style={{
               background: 'none', border: 'none', color: '#a78bfa', fontSize: 13, cursor: 'pointer',
             }}>
               Add your first job →
@@ -255,6 +282,52 @@ export default function KanbanBoard({ initialApps, userName }) {
 
       {showAdd && <AddModal onClose={() => setShowAdd(false)} onSave={handleAdd} />}
       {editApp && <EditModal app={editApp} onClose={() => setEditApp(null)} onSave={handleEdit} />}
+
+      {/* Upgrade modal */}
+      {showUpgrade && (
+        <div onClick={() => setShowUpgrade(false)} style={{
+          position: 'fixed', inset: 0, zIndex: 50, display: 'flex',
+          alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', padding: 16,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            width: '100%', maxWidth: 420, background: '#111118',
+            border: '1px solid rgba(167,139,250,0.2)', borderRadius: 20, padding: '36px 32px',
+            boxShadow: '0 24px 80px rgba(0,0,0,0.6), 0 0 60px rgba(124,58,237,0.1)',
+            textAlign: 'center',
+          }}>
+            <div style={{ fontSize: 36, marginBottom: 16 }}>⚡</div>
+            <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, letterSpacing: '-0.02em' }}>
+              You've hit the free limit
+            </h2>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', lineHeight: 1.7, marginBottom: 28 }}>
+              Free accounts can track up to {FREE_LIMIT} applications.<br/>
+              Upgrade to <strong style={{ color: '#a78bfa' }}>TrackJobs Pro</strong> for unlimited tracking.
+            </p>
+            <div style={{
+              background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.15)',
+              borderRadius: 12, padding: '16px 20px', marginBottom: 24,
+            }}>
+              <div style={{ fontSize: 28, fontWeight: 900, color: '#fff', marginBottom: 2 }}>$6<span style={{ fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.4)' }}>/month</span></div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Unlimited applications · Cancel anytime</div>
+            </div>
+            <a href={GUMROAD_URL} target="_blank" rel="noreferrer" style={{
+              display: 'block', background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+              color: '#fff', fontSize: 14, fontWeight: 700, padding: '13px',
+              borderRadius: 10, textDecoration: 'none', marginBottom: 12,
+              boxShadow: '0 0 30px rgba(124,58,237,0.4)',
+            }}>
+              Upgrade to Pro →
+            </a>
+            <button onClick={() => setShowUpgrade(false)} style={{
+              background: 'none', border: 'none', color: 'rgba(255,255,255,0.25)',
+              fontSize: 12, cursor: 'pointer',
+            }}>
+              Maybe later
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
